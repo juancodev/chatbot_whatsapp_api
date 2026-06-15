@@ -37,7 +37,7 @@ export class ChatbotService {
 
       const url = `${apiURL}/${version}/${phone}/messages`;
       const config = {
-        headers: { Authorization: token },
+        headers: { Authorization: `Bearer ${token}` },
       };
 
       const responseAPI = this.httpService.post(
