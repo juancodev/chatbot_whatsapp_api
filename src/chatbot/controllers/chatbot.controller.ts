@@ -2,21 +2,25 @@ import {
   Controller,
   Get,
   Post,
-  Req,
   Query,
   Res,
   HttpStatus,
   ForbiddenException,
-  HttpCode,
+  Body,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 
+import { ChatbotService } from '../services/chatbot.service';
 import { EnvConfig } from '../../env.model';
+import { SendMessageDto } from '../dto/sendmessage.dto';
 
 @Controller()
 export class ChatbotController {
-  constructor(private configService: ConfigService<EnvConfig>) {}
+  constructor(
+    private configService: ConfigService<EnvConfig>,
+    private readonly chatbotService: ChatbotService,
+  ) {}
 
   @Get('chatbot')
   getChatbot(
@@ -44,14 +48,11 @@ export class ChatbotController {
     }
   }
 
-  @Post('chatbot')
-  @HttpCode(HttpStatus.OK) // WhatsApp requiere un 200 OK explícito para confirmar recepción
-  validateChatbot(@Req() req: Request) {
-    const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    console.log(`\n\n✉️ Webhook event received ${timestamp}\n`);
-    console.log(JSON.stringify(req.body, null, 2));
-
-    // Respondemos con un objeto simple o vacío, Meta solo busca el status 200
-    return { status: 'success' };
+  @Post('webhook')
+  validateChatbot(@Body() incomingMessageData: SendMessageDto) {
+    return this.chatbotService.chatbotSendMessage(
+      incomingMessageData.to,
+      incomingMessageData.message?.text?.body,
+    );
   }
 }

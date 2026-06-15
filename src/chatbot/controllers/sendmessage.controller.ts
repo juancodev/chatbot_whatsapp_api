@@ -8,8 +8,11 @@ export class SendMessageController {
   constructor(private readonly chatbotService: ChatbotService) {}
 
   @Post('send')
-  @HttpCode(HttpStatus.OK) // WhatsApp requiere un 200 OK explícito para confirmar recepción
+  @HttpCode(HttpStatus.OK)
   message(@Body() newMessage: SendMessageDto) {
-    return this.chatbotService.sendMessage(newMessage.to, newMessage.message);
+    return this.chatbotService.sendMessage(
+      newMessage.to,
+      newMessage.message?.text?.body,
+    );
   }
 }

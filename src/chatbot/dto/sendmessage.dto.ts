@@ -1,4 +1,8 @@
 export class SendMessageDto {
   to!: string;
-  message!: string;
+  message!: {
+    text: {
+      body: string;
+    };
+  };
 }
