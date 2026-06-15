@@ -12,9 +12,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 
-@Controller('webhook')
+import { EnvConfig } from '../../env.model';
+
+@Controller({
+  host: 'chatbot-whatsapp-api-6tgz.onrender.com',
+})
 export class ChatbotController {
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService<EnvConfig>) {}
 
   @Get('chatbot')
   getChatbot(
@@ -24,7 +28,7 @@ export class ChatbotController {
     @Res() res: Response, // Inyectamos la respuesta de express
   ) {
     // Obtenemos el token como string
-    const verifyToken = this.configService.get<string>('API_TOKEN');
+    const verifyToken = this.configService.get<EnvConfig | string>('API_TOKEN');
 
     console.log('--- Intentando verificar Webhook ---');
     console.log(

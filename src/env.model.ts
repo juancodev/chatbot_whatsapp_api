@@ -4,4 +4,5 @@ export interface EnvConfig {
   PORT: number;
   BUSINESS_PHONE: string;
   API_VERSION: string;
+  WHATSAPP_API_URL: string;
 }
