@@ -4,7 +4,7 @@ import { ChatbotService } from '../services/chatbot.service';
 import { SendMessageDto } from '../dto/sendmessage.dto';
 
 @Controller('send')
-export class ChatbotController {
+export class SendMessageController {
   constructor(private readonly chatbotService: ChatbotService) {}
 
   @Post()
