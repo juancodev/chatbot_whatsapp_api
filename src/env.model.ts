@@ -1,4 +1,4 @@
-export interface ConfigENV {
+export interface EnvConfig {
   WEBHOOK_VERIFY_TOKEN: string;
   API_TOKEN: string;
   PORT: number;
