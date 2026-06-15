@@ -14,9 +14,7 @@ import type { Request, Response } from 'express';
 
 import { EnvConfig } from '../../env.model';
 
-@Controller({
-  host: 'chatbot-whatsapp-api-6tgz.onrender.com',
-})
+@Controller()
 export class ChatbotController {
   constructor(private configService: ConfigService<EnvConfig>) {}
 
