@@ -5,4 +5,5 @@ export class SendMessageDto {
       body: string;
     };
   };
+  id!: string;
 }

@@ -15,14 +15,14 @@ import { ChatbotService } from '../services/chatbot.service';
 import { EnvConfig } from '../../env.model';
 import { SendMessageDto } from '../dto/sendmessage.dto';
 
-@Controller()
+@Controller('webhook')
 export class ChatbotController {
   constructor(
     private configService: ConfigService<EnvConfig>,
     private readonly chatbotService: ChatbotService,
   ) {}
 
-  @Get('chatbot')
+  @Get('')
   getChatbot(
     @Query('hub.mode') mode: string,
     @Query('hub.challenge') challenge: string,
@@ -48,11 +48,12 @@ export class ChatbotController {
     }
   }
 
-  @Post('webhook')
-  validateChatbot(@Body() incomingMessageData: SendMessageDto) {
-    return this.chatbotService.chatbotSendMessage(
+  @Post('send')
+  handleIncoming(@Body() incomingMessageData: SendMessageDto) {
+    return this.chatbotService.sendMessage(
       incomingMessageData.to,
       incomingMessageData.message?.text?.body,
+      incomingMessageData.id,
     );
   }
 }

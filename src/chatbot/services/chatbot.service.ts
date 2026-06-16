@@ -46,7 +46,7 @@ export class ChatbotService {
     private configService: ConfigService<EnvConfig>,
   ) {}
 
-  sendMessage(to: string, message: string) {
+  sendMessage(to: string, message: string, messageId: string) {
     try {
       const apiURL = this.configService.get('WHATSAPP_API_URL', {
         infer: true,
@@ -74,6 +74,9 @@ export class ChatbotService {
           text: {
             preview_url: false,
             body: message,
+          },
+          context: {
+            message_id: messageId,
           },
         },
         config,

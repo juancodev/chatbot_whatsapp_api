@@ -13,6 +13,7 @@ export class SendMessageController {
     return this.chatbotService.sendMessage(
       newMessage.to,
       newMessage.message?.text?.body,
+      newMessage.id,
     );
   }
 }
