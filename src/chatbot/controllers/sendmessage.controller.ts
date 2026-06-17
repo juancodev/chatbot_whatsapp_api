@@ -1,6 +1,9 @@
 import { Controller, Post, HttpStatus, HttpCode, Body } from '@nestjs/common';
 
-import { ChatbotService } from '../services/chatbot.service';
+import {
+  ChatbotService,
+  WhatsAppSendResponse,
+} from '../services/chatbot.service';
 import { SendMessageDto } from '../dto/sendmessage.dto';
 
 @Controller('whatsapp')
@@ -9,7 +12,9 @@ export class SendMessageController {
 
   @Post('send')
   @HttpCode(HttpStatus.OK)
-  message(@Body() newMessage: SendMessageDto) {
+  async message(
+    @Body() newMessage: SendMessageDto,
+  ): Promise<WhatsAppSendResponse> {
     return this.chatbotService.sendMessage(
       newMessage.to,
       newMessage.message?.text?.body,

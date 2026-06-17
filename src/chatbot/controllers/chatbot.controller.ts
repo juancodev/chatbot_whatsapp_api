@@ -7,11 +7,15 @@ import {
   HttpStatus,
   ForbiddenException,
   Body,
+  HttpCode,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 
-import { ChatbotService } from '../services/chatbot.service';
+import {
+  ChatbotService,
+  WhatsAppSendResponse,
+} from '../services/chatbot.service';
 import { EnvConfig } from '../../env.model';
 import { SendMessageDto } from '../dto/sendmessage.dto';
 
@@ -27,10 +31,11 @@ export class ChatbotController {
     @Query('hub.mode') mode: string,
     @Query('hub.challenge') challenge: string,
     @Query('hub.verify_token') token: string,
-    @Res() res: Response, // Inyectamos la respuesta de express
+    @Res() res: Response,
   ) {
-    // Obtenemos el token como string
-    const verifyToken = this.configService.get<EnvConfig | string>('API_TOKEN');
+    const verifyToken: string | undefined = this.configService.get(
+      'WEBHOOK_VERIFY_TOKEN',
+    );
 
     console.log('--- Intentando verificar Webhook ---');
     console.log(
@@ -38,18 +43,31 @@ export class ChatbotController {
     );
 
     if (mode === 'subscribe' && token === verifyToken) {
-      console.log('✅ WEBHOOK VERIFICADO CON ÉXITO');
-
-      // CRITICAL: Meta necesita el challenge en texto plano, no en JSON
+      console.log('WEBHOOK VERIFICADO CON ÉXITO');
       return res.status(HttpStatus.OK).send(challenge);
     } else {
-      console.log('❌ FALLÓ LA VERIFICACIÓN');
+      console.log('FALLÓ LA VERIFICACIÓN');
       throw new ForbiddenException('Verification failed');
     }
   }
 
+  @Post('')
+  @HttpCode(HttpStatus.OK)
+  async handleWebhook(@Body() body: unknown) {
+    console.log('Webhook recibido:', JSON.stringify(body).slice(0, 500));
+    try {
+      await this.chatbotService.processIncomingMessage(body);
+    } catch (error) {
+      console.error('Error procesando webhook:', error);
+    }
+    return { status: 'received' };
+  }
+
   @Post('send')
-  handleIncoming(@Body() incomingMessageData: SendMessageDto) {
+  @HttpCode(HttpStatus.OK)
+  async handleSend(
+    @Body() incomingMessageData: SendMessageDto,
+  ): Promise<WhatsAppSendResponse> {
     return this.chatbotService.sendMessage(
       incomingMessageData.to,
       incomingMessageData.message?.text?.body,

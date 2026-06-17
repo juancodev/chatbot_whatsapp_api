@@ -1,43 +1,29 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
+import { firstValueFrom } from 'rxjs';
 
 import { EnvConfig } from '../../env.model';
+import type {
+  WebhookContact,
+  WebhookPayload,
+} from '../dto/webhook-payload.dto';
 
 export interface WhatsAppSendResponse {
   messaging_product: 'whatsapp';
-  contacts: {
-    input: string; // The phone number sent in the payload
-    wa_id: string; // The official WhatsApp ID of the user
-  }[];
-  messages: {
-    id: string; // The unique message ID (wamid) used for status tracking
-  }[];
+  contacts: { input: string; wa_id: string }[];
+  messages: { id: string }[];
 }
 
-export interface WhatsAppIncomingMessage {
-  from?: string; // Sender phone number
-  id?: string; // Unique message ID
-  timestamp?: string; // Unix timestamp
-  type:
-    | 'text'
-    | 'image'
-    | 'document'
-    | 'audio'
-    | 'video'
-    | 'location'
-    | 'interactive';
-  text?: {
-    body: string;
-  };
-  image?: {
-    caption?: string;
-    mime_type: string;
-    sha256: string;
-    id: string;
-  };
-  // Additional media objects (document, audio, etc.) follow similar structures
-}
+const GREETINGS = [
+  'hola',
+  'hi',
+  'hello',
+  'buenas',
+  'buenos dias',
+  'buenas tardes',
+  'buenas noches',
+];
 
 @Injectable()
 export class ChatbotService {
@@ -46,81 +32,82 @@ export class ChatbotService {
     private configService: ConfigService<EnvConfig>,
   ) {}
 
-  sendMessage(to: string, message: string, messageId: string) {
-    try {
-      const apiURL = this.configService.get('WHATSAPP_API_URL', {
-        infer: true,
-      });
-      const version = this.configService.get('API_VERSION', { infer: true });
-      const phone = this.configService.get('BUSINESS_PHONE', { infer: true });
-      const token = this.configService.get('API_TOKEN', { infer: true });
+  private getApiConfig() {
+    const apiURL = this.configService.get('WHATSAPP_API_URL', { infer: true });
+    const version = this.configService.get('API_VERSION', { infer: true });
+    const phone = this.configService.get('BUSINESS_PHONE', { infer: true });
+    const token = this.configService.get('API_TOKEN', { infer: true });
 
-      if (!apiURL || !version || !phone) {
-        throw new Error('Environment False');
-      }
-
-      const url = `${apiURL}/${version}/${phone}/messages`;
-      const config = {
-        headers: { Authorization: `Bearer ${token}` },
-      };
-
-      const responseAPI = this.httpService.post(
-        url,
-        {
-          messaging_product: 'whatsapp',
-          recipient_type: 'individual',
-          to,
-          type: 'text',
-          text: {
-            preview_url: false,
-            body: message,
-          },
-          context: {
-            message_id: messageId,
-          },
-        },
-        config,
-      );
-      return responseAPI;
-    } catch {
-      throw new Error('Error to send message');
+    if (!apiURL || !version || !phone || !token) {
+      throw new Error('Missing WhatsApp API configuration');
     }
+
+    return {
+      url: `${apiURL}/${version}/${phone}/messages`,
+      headers: { Authorization: `Bearer ${token}` },
+    };
   }
 
-  chatbotSendMessage(to: string, message: string) {
-    try {
-      const apiURL = this.configService.get('WHATSAPP_API_URL', {
-        infer: true,
-      });
-      const version = this.configService.get('API_VERSION', { infer: true });
-      const phone = this.configService.get('BUSINESS_PHONE', { infer: true });
-      const token = this.configService.get('API_TOKEN', { infer: true });
+  async sendMessage(
+    to: string,
+    message: string,
+    messageId?: string,
+  ): Promise<WhatsAppSendResponse> {
+    const { url, headers } = this.getApiConfig();
 
-      if (!apiURL || !version || !phone) {
-        throw new Error('Environment False');
+    const body: Record<string, unknown> = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to,
+      type: 'text',
+      text: { preview_url: false, body: message },
+    };
+
+    if (messageId) {
+      body.context = { message_id: messageId };
+    }
+
+    const response = await firstValueFrom(
+      this.httpService.post<WhatsAppSendResponse>(url, body, { headers }),
+    );
+    return response.data;
+  }
+
+  isGreeting(message: string): boolean {
+    const normalized = message.trim().toLowerCase();
+    return GREETINGS.includes(normalized);
+  }
+
+  getSenderName(contactId: WebhookContact) {
+    const welcomeMessage = ``;
+    if (contactId?.profile?.name || contactId.wa_id) {
+      const contact = contactId?.profile?.name || contactId.wa_id;
+      return `¡Bienvenido ${contact || ''} a JDRStore! `;
+    }
+    return welcomeMessage;
+  }
+
+  async processIncomingMessage(payload: unknown) {
+    const webhook = payload as WebhookPayload;
+    const messages = webhook?.entry?.[0]?.changes?.[0]?.value?.messages;
+    const contactId = webhook?.entry?.[0]?.changes?.[0]?.value?.contacts?.[0];
+
+    if (!messages || messages.length === 0) return;
+
+    for (const msg of messages) {
+      const text = msg.text?.body;
+      const from = msg.from;
+      const msgId = msg.id;
+
+      if (!from || !text) continue;
+
+      console.log(`Mensaje de ${from}: "${text}"`);
+
+      if (this.isGreeting(text)) {
+        const welcomeMessage = this.getSenderName(contactId);
+        console.log(`Saludo detectado → enviando bienvenida a ${from}`);
+        await this.sendMessage(from, welcomeMessage, msgId);
       }
-
-      const url = `${apiURL}/${version}/${phone}/messages`;
-      const config = {
-        headers: { Authorization: `Bearer ${token}` },
-      };
-
-      const responseAPI = this.httpService.post(
-        url,
-        {
-          messaging_product: 'whatsapp',
-          recipient_type: 'individual',
-          to,
-          type: 'text',
-          text: {
-            body: `Echo: ${message}`,
-          },
-        },
-        config,
-      );
-      return responseAPI;
-    } catch {
-      throw new Error('Error to send message');
     }
   }
 }
