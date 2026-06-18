@@ -1,29 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 
 import { EnvConfig } from '../../env.model';
-import type {
-  WebhookContact,
-  WebhookPayload,
-} from '../dto/webhook-payload.dto';
+import { chatbotMenu } from '../chatbot.model';
 
 export interface WhatsAppSendResponse {
   messaging_product: 'whatsapp';
   contacts: { input: string; wa_id: string }[];
   messages: { id: string }[];
 }
-
-const GREETINGS = [
-  'hola',
-  'hi',
-  'hello',
-  'buenas',
-  'buenos dias',
-  'buenas tardes',
-  'buenas noches',
-];
 
 @Injectable()
 export class ChatbotService {
@@ -73,41 +60,35 @@ export class ChatbotService {
     return response.data;
   }
 
-  isGreeting(message: string): boolean {
-    const normalized = message.trim().toLowerCase();
-    return GREETINGS.includes(normalized);
-  }
+  async sendInteractiveButton(
+    to: string,
+    bodyText: string,
+    buttonsOptions: chatbotMenu['buttons'],
+  ): Promise<WhatsAppSendResponse> {
+    const { url, headers } = this.getApiConfig();
 
-  getSenderName(contactId: WebhookContact) {
-    const welcomeMessage = ``;
-    if (contactId?.profile?.name || contactId.wa_id) {
-      const contact = contactId?.profile?.name || contactId.wa_id;
-      return `¡Bienvenido ${contact || ''} a JDRStore! `;
+    if (buttonsOptions.length < 1) {
+      throw new BadRequestException('Bad data error buttons');
     }
-    return welcomeMessage;
-  }
 
-  async processIncomingMessage(payload: unknown) {
-    const webhook = payload as WebhookPayload;
-    const messages = webhook?.entry?.[0]?.changes?.[0]?.value?.messages;
-    const contactId = webhook?.entry?.[0]?.changes?.[0]?.value?.contacts?.[0];
+    const body: Record<string, unknown> = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to,
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: { text: bodyText },
+        action: {
+          buttons: buttonsOptions,
+        },
+      },
+    };
 
-    if (!messages || messages.length === 0) return;
+    const response = await firstValueFrom(
+      this.httpService.post<WhatsAppSendResponse>(url, body, { headers }),
+    );
 
-    for (const msg of messages) {
-      const text = msg.text?.body;
-      const from = msg.from;
-      const msgId = msg.id;
-
-      if (!from || !text) continue;
-
-      console.log(`Mensaje de ${from}: "${text}"`);
-
-      if (this.isGreeting(text)) {
-        const welcomeMessage = this.getSenderName(contactId);
-        console.log(`Saludo detectado → enviando bienvenida a ${from}`);
-        await this.sendMessage(from, welcomeMessage, msgId);
-      }
-    }
+    return response.data;
   }
 }

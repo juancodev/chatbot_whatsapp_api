@@ -16,6 +16,7 @@ import {
   ChatbotService,
   WhatsAppSendResponse,
 } from '../services/chatbot.service';
+import { ChatbotHandleService } from '../services/chatbothandle.service';
 import { EnvConfig } from '../../env.model';
 import { SendMessageDto } from '../dto/sendmessage.dto';
 
@@ -24,6 +25,7 @@ export class ChatbotController {
   constructor(
     private configService: ConfigService<EnvConfig>,
     private readonly chatbotService: ChatbotService,
+    private readonly chatbotHandleService: ChatbotHandleService,
   ) {}
 
   @Get('')
@@ -56,7 +58,7 @@ export class ChatbotController {
   async handleWebhook(@Body() body: unknown) {
     console.log('Webhook recibido:', JSON.stringify(body).slice(0, 500));
     try {
-      await this.chatbotService.processIncomingMessage(body);
+      await this.chatbotHandleService.processIncomingMessage(body);
     } catch (error) {
       console.error('Error procesando webhook:', error);
     }
