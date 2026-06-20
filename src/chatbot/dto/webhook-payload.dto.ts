@@ -34,6 +34,14 @@ export interface WebhookMessage {
   from: string;
   id: string;
   timestamp: string;
-  type: string;
+  type: 'text' | 'interactive';
   text?: { body: string };
+  interactive: WebhookInteractiveOption;
+}
+
+export interface WebhookInteractiveOption {
+  button_reply: {
+    id: string;
+    title: string;
+  };
 }

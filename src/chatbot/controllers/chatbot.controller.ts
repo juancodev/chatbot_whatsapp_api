@@ -56,7 +56,7 @@ export class ChatbotController {
   @Post('')
   @HttpCode(HttpStatus.OK)
   async handleWebhook(@Body() body: unknown) {
-    console.log('Webhook recibido:', JSON.stringify(body).slice(0, 500));
+    // console.log('Webhook recibido:', JSON.stringify(body).slice(0, 500));
     try {
       await this.chatbotHandleService.processIncomingMessage(body);
     } catch (error) {

@@ -48,15 +48,20 @@ export class ChatbotHandleService {
       const from = msg.from;
       const msgId = msg.id;
 
-      if (!from || !text) continue;
+      if (!from) continue;
 
-      console.log(`Mensaje de ${from}: "${text}"`);
+      if (msg.type === 'text') {
+        if (!text) continue;
 
-      if (this.isGreeting(text)) {
-        const welcomeMessage = this.getSenderName(contactId);
-        console.log(`Saludo detectado → enviando bienvenida a ${from}`);
-        await this.chatbotService.sendMessage(from, welcomeMessage, msgId);
-        await this.sendWelcomeMenu(from);
+        if (this.isGreeting(text)) {
+          const welcomeMessage = this.getSenderName(contactId);
+          console.log(`Saludo detectado → enviando bienvenida a ${from}`);
+          await this.chatbotService.sendMessage(from, welcomeMessage, msgId);
+          return await this.sendWelcomeMenu(from);
+        }
+      } else if (msg.type === 'interactive') {
+        const option = msg?.interactive?.button_reply?.id;
+        await this.chatbotService.handleMenuOption(from, option);
       }
     }
   }
@@ -78,6 +83,10 @@ export class ChatbotHandleService {
       },
     ];
 
-    await this.chatbotService.sendInteractiveButton(to, menuMessage, buttons);
+    return await this.chatbotService.sendInteractiveButton(
+      to,
+      menuMessage,
+      buttons,
+    );
   }
 }

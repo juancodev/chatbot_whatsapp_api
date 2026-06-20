@@ -91,4 +91,23 @@ export class ChatbotService {
 
     return response.data;
   }
+
+  async handleMenuOption(to: string, option: string) {
+    let response: string;
+    switch (option) {
+      case 'option_1':
+        response = 'See catalog';
+        break;
+      case 'option_2':
+        response = 'Contact with seller';
+        break;
+      case 'option_3':
+        response = 'Back menu';
+        break;
+      default:
+        response = `There is a wrong`;
+    }
+
+    await this.sendMessage(to, response);
+  }
 }
