@@ -45,3 +45,22 @@ export interface WebhookInteractiveOption {
     title: string;
   };
 }
+
+export interface WebhookMediaObject {
+  image?: {
+    link: string;
+    caption?: string;
+  };
+  audio?: {
+    link: string;
+  };
+  video?: {
+    link: string;
+    caption?: string;
+  };
+  document?: {
+    link: string;
+    caption?: string;
+    filename?: string;
+  };
+}

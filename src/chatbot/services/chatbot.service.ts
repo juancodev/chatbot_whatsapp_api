@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { EnvConfig } from '../../env.model';
 import { chatbotMenu } from '../chatbot.model';
+import { WebhookMediaObject } from '../dto/webhook-payload.dto';
 
 export interface WhatsAppSendResponse {
   messaging_product: 'whatsapp';
@@ -109,5 +110,55 @@ export class ChatbotService {
     }
 
     await this.sendMessage(to, response);
+  }
+
+  async sendMediaMessage(
+    to: string,
+    type: string,
+    mediaURL: string,
+    caption?: string,
+  ): Promise<WhatsAppSendResponse> {
+    try {
+      const { url, headers } = this.getApiConfig();
+      const mediaObject: WebhookMediaObject = {};
+
+      switch (type) {
+        case 'image':
+          mediaObject.image = { link: mediaURL, caption };
+          break;
+        case 'audio':
+          mediaObject.audio = { link: mediaURL };
+          break;
+        case 'video':
+          mediaObject.video = { link: mediaURL, caption };
+          break;
+        case 'document':
+          mediaObject.document = {
+            link: mediaURL,
+            caption,
+            filename: 'test.pdf',
+          };
+          break;
+        default:
+          throw new Error('Not Supported Media Type');
+          break;
+      }
+
+      const body: Record<string, unknown> = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to,
+        type: type,
+        ...mediaObject,
+      };
+
+      const response = await firstValueFrom(
+        this.httpService.post<WhatsAppSendResponse>(url, body, { headers }),
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('Error sending Media! ', error);
+    }
   }
 }
